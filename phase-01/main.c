@@ -28,10 +28,20 @@ int main(int argc, char *argv[])
   wmhints->input = True;
   wmhints->initial_state = NormalState;
 
+  // Setup the Size Hints (also for the Window Manager).
+  XSizeHints *sizehints = XAllocSizeHints();
+  // This tells other functions that the value for min width and height.
+  sizehints->flags = PMinSize;
+  // And these are the values for min width and height.
+  sizehints->min_width = 300;
+  sizehints->min_height = 400;
+
   // Map the window to the display.
   XMapWindow(dpy, win);
 
   // Free all the things.
+  XFree(sizehints);
+  sizehints = NULL;
   XFree(wmhints);
   wmhints = NULL;
 

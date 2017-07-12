@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
 
   while(!done) {
     clock_gettime(CLOCK_MONOTONIC_RAW, &curr);
-    mill_store = timespec_diff(&curr, &prev);
+    mill_store += timespec_diff(&curr, &prev);
 
     // Handle events in the event queue.
     while(XPending(dpy) > 0) {

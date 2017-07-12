@@ -36,6 +36,15 @@ int main(int argc, char *argv[])
   sizehints->min_width = 300;
   sizehints->min_height = 400;
 
+  /*
+   * This particular function does some allocating that doesn't ever get freed.
+   * Valgrind reports 27,262 bytes in 384 blocks as still reachable because of this.
+   * It's possible that this "leak" could be avoided by using XSetWMProperties()
+   * and create our own XTextProperty's.
+   */
+  // Sets Window properties that are used by the Window Manager.
+  Xutf8SetWMProperties(dpy, win, "Phase 01", "", NULL, 0, sizehints, wmhints, NULL);
+
   // Map the window to the display.
   XMapWindow(dpy, win);
 

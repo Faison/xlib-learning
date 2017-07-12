@@ -66,6 +66,7 @@ int main(int argc, char *argv[])
   // Map the window to the display.
   XMapWindow(dpy, win);
 
+  // This variable will be used to examine events thrown to our application window.
   XEvent e;
 
   // Block execution until the window is exposed.

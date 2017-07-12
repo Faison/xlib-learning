@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
 
   // Create the application Window.
   unsigned long black = BlackPixel(dpy, DefaultScreen(dpy));
-  Window win = XCreateSimpleWindow(dpy, DefaultRootWindow(dpy), 0, 0, 600, 800, 0, black, black);
+  Window win = XCreateSimpleWindow(dpy, DefaultRootWindow(dpy), 0, 0, 800, 600, 0, black, black);
 
   // Setup the Window Manager hints.
   XWMHints *wmhints = XAllocWMHints();
@@ -33,8 +33,8 @@ int main(int argc, char *argv[])
   // This tells other functions that the value for min width and height.
   sizehints->flags = PMinSize;
   // And these are the values for min width and height.
-  sizehints->min_width = 300;
-  sizehints->min_height = 400;
+  sizehints->min_width = 400;
+  sizehints->min_height = 300;
 
   /*
    * This particular function does some allocating that doesn't ever get freed.

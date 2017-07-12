@@ -3,10 +3,18 @@
  *
  * This code won't be structured very well, just trying to get stuff working.
  */
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+
+// ~16.6 ms between frames is ~60 fps.
+#define RATE_LIMIT 16.6
+
+// Forward declaration of this function so we can use it in main().
+double timespec_diff(struct timespec *a, struct timespec *b);
 
 int main(int argc, char *argv[])
 {
@@ -70,7 +78,25 @@ int main(int argc, char *argv[])
   // @TODO: Use sleeping to avoid taking up all CPU cycles.
   Bool done = False;
 
+  // We need to track very small periods of time (nanoseconds), so we use the struct timespec.
+  struct timespec prev, curr;
+
+  /*
+   * Get the current time with CLOCK_MONOTONIC_RAW, which gets the time past since a certain time.
+   * CLOCK_MONOTONIC_RAW is not subject to adjustments to the system clock.
+   */
+  clock_gettime(CLOCK_MONOTONIC_RAW, &curr);
+  // Initialize the previous time with the current time, that way our current vs. previous comparison is valid.
+  prev.tv_sec = curr.tv_sec;
+  prev.tv_nsec = curr.tv_nsec;
+
+  // This variable will be used to normalize our loop to a specific rate.
+  double mill_store = 0;
+
   while(!done) {
+    clock_gettime(CLOCK_MONOTONIC_RAW, &curr);
+    mill_store = timespec_diff(&curr, &prev);
+
     // Handle events in the event queue.
     while(XPending(dpy) > 0) {
       XNextEvent(dpy, &e);
@@ -86,7 +112,53 @@ int main(int argc, char *argv[])
           break;
       }
     }
-    // Add the rest of the loop code here.
+
+    // Only do stuff if the ms passed is greater than our rate limit.
+    if (mill_store > RATE_LIMIT && !done) {
+      /*
+       * This loop counts down the mill_store, so if we have more ms stored than the Rate limit,
+       * we run all the processes once. If we have three times the rate limit, we run all the
+       * processes thrice. If the mill_store is less than the rate limit, then we pass on
+       * processing for this time around the loop (which shouldn't really happen).
+       *
+       * This helps us have predictable numbers when we do things dependent on numbers, like physics.
+       */
+      for (; mill_store > RATE_LIMIT && ! done; mill_store -= RATE_LIMIT) {
+        // Things that should run once per tick/frame will go here.
+      }
+    }
+
+    // Update the previous timespec with the most recent timespec so we can calculate the diff next time around.
+    prev.tv_sec = curr.tv_sec;
+    prev.tv_nsec = curr.tv_nsec;
+
+    /**
+     * Make our process sleep to avoid locking up the CPU.
+     *
+     * From what I understand, the following sleep code will not work on Windows.
+     * It works on Linux, it probably works on OSX, but a different approach is needed
+     * for Windows.
+     */
+    if (mill_store < RATE_LIMIT && !done) {
+      // We'll need a couple of timespecs, and an int to check for errors.
+      struct timespec sleep_required, sleep_remaining;
+      int was_error = 0;
+
+      // initialize the remaining sleep time with the value in mill_store.
+      sleep_remaining.tv_sec = mill_store / 1000.0;
+      sleep_remaining.tv_nsec = ((int)mill_store % 1000) * 1000000;
+
+      do {
+        // Set the required sleep time using the remaining time, so we can continue sleeping if nanosleep is interrupted
+        sleep_required.tv_sec = sleep_remaining.tv_sec;
+        sleep_required.tv_nsec = sleep_remaining.tv_nsec;
+
+        // Clear out the errno variable before calling nanosleep so we can catch errors.
+        errno = 0;
+        was_error = nanosleep(&sleep_required, &sleep_remaining);
+        // Keep looping if nanosleep was interrupted and there is some sleep time remaining.
+      } while (was_error == -1 && errno == EINTR);
+    }
   }
 
   // Free all the things.
@@ -100,4 +172,12 @@ int main(int argc, char *argv[])
   dpy = NULL;
 
   return EXIT_SUCCESS;
+}
+
+/**
+ * This returns the difference between the values of two timespecs.
+ */
+double timespec_diff(struct timespec *a, struct timespec *b)
+{
+	return (((a->tv_sec * 1000000000) + a->tv_nsec) - ((b->tv_sec * 1000000000) + b->tv_nsec)) / 1000000.0;
 }

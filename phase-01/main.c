@@ -152,12 +152,13 @@ int main(int argc, char *argv[])
       sleep_remaining.tv_nsec = ((int)mill_store % 1000) * 1000000;
 
       do {
-        // Set the required sleep time using the remaining time, so we can continue sleeping if nanosleep is interrupted
+        // Set the required sleep time using the remaining time, so we can continue sleeping if nanosleep is interrupted.
         sleep_required.tv_sec = sleep_remaining.tv_sec;
         sleep_required.tv_nsec = sleep_remaining.tv_nsec;
 
         // Clear out the errno variable before calling nanosleep so we can catch errors.
         errno = 0;
+        // Try sleeping for the required time, if nanosleep is interrupted, sleep_remaining will have the time left to sleep.
         was_error = nanosleep(&sleep_required, &sleep_remaining);
         // Keep looping if nanosleep was interrupted and there is some sleep time remaining.
       } while (was_error == -1 && errno == EINTR);

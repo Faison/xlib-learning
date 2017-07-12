@@ -45,8 +45,16 @@ int main(int argc, char *argv[])
   // Sets Window properties that are used by the Window Manager.
   Xutf8SetWMProperties(dpy, win, "Phase 01", "", NULL, 0, sizehints, wmhints, NULL);
 
+  // Tell X that we want to be notified of the Exposure event, so we can know when our window is initially visible.
+  XSelectInput(dpy, win, ExposureMask);
+
   // Map the window to the display.
   XMapWindow(dpy, win);
+
+  XEvent e;
+
+  // Block execution until the window is exposed.
+  XWindowEvent(dpy, win, ExposureMask, &e);
 
   // Free all the things.
   XFree(sizehints);

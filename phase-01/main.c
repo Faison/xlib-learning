@@ -4,6 +4,7 @@
  * This code won't be structured very well, just trying to get stuff working.
  */
 #include <stdlib.h>
+#include <string.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
@@ -48,6 +49,12 @@ int main(int argc, char *argv[])
   // Tell X that we want to be notified of the Exposure event, so we can know when our window is initially visible.
   XSelectInput(dpy, win, ExposureMask);
 
+  // Grab a copy of X's representation of WM_PROTOCOLS, used in checking for window closed events.
+  Atom wm_protocol = XInternAtom(dpy, "WM_PROTOCOLS", True);
+  // Let the Window Manager know that we want the event when a user closes the window.
+  Atom wm_delete = XInternAtom(dpy, "WM_DELETE_WINDOW", True);
+  XSetWMProtocols(dpy, win, &wm_delete, 1);
+
   // Map the window to the display.
   XMapWindow(dpy, win);
 
@@ -55,6 +62,32 @@ int main(int argc, char *argv[])
 
   // Block execution until the window is exposed.
   XWindowEvent(dpy, win, ExposureMask, &e);
+
+  // After being exposed, we'll tell X what input events we want to know about here.
+  XSelectInput(dpy, win, 0);
+
+  // The loop
+  // @TODO: Use sleeping to avoid taking up all CPU cycles.
+  Bool done = False;
+
+  while(!done) {
+    // Handle events in the event queue.
+    while(XPending(dpy) > 0) {
+      XNextEvent(dpy, &e);
+      switch(e.type) {
+        case ClientMessage:
+          // This client message is a window manager protocol.
+          if (e.xclient.message_type == wm_protocol) {
+            // Somehow this checks if the protocol was a WM_DELETE protocol, so we can exit the loop and be done.
+            if (e.xclient.data.l[0] == wm_delete) {
+              done = True;
+            }
+          }
+          break;
+      }
+    }
+    // Add the rest of the loop code here.
+  }
 
   // Free all the things.
   XFree(sizehints);

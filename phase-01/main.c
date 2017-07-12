@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
    * This particular function does some allocating that doesn't ever get freed.
    * Valgrind reports 27,262 bytes in 384 blocks as still reachable because of this.
    * It's possible that this "leak" could be avoided by using XSetWMProperties()
-   * and create our own XTextProperty's.
+   * and creating our own XTextProperty's.
    */
   // Sets Window properties that are used by the Window Manager.
   Xutf8SetWMProperties(dpy, win, "Phase 01", "", NULL, 0, sizehints, wmhints, NULL);
@@ -94,9 +94,12 @@ int main(int argc, char *argv[])
   double mill_store = 0;
 
   while(!done) {
+    // Get the current time.
     clock_gettime(CLOCK_MONOTONIC_RAW, &curr);
+    // Store the difference in ms between curr and prev, store it in mill_store for use later.
     mill_store += timespec_diff(&curr, &prev);
 
+    // @TODO: Determine if this should happen before updating curr.
     // Handle events in the event queue.
     while(XPending(dpy) > 0) {
       XNextEvent(dpy, &e);

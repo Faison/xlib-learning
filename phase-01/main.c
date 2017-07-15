@@ -5,6 +5,7 @@
  */
 #include <errno.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <time.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -72,7 +73,7 @@ int main(int argc, char *argv[])
   XWindowEvent(dpy, win, ExposureMask, &e);
 
   // After being exposed, we'll tell X what input events we want to know about here.
-  XSelectInput(dpy, win, 0);
+  XSelectInput(dpy, win, KeyPressMask);
 
   // The loop
   // @TODO: Use sleeping to avoid taking up all CPU cycles.
@@ -93,6 +94,10 @@ int main(int argc, char *argv[])
   // This variable will be used to normalize our loop to a specific rate.
   double mill_store = 0;
 
+  // A couple of variables used to deal with KeyPress and KeyRelease events.
+  KeySym event_key;
+  char *key_string = NULL;
+
   while(!done) {
     // Get the current time.
     clock_gettime(CLOCK_MONOTONIC_RAW, &curr);
@@ -112,6 +117,13 @@ int main(int argc, char *argv[])
               done = True;
             }
           }
+          break;
+        case KeyPress:
+          // Handle KeyPress events.
+          // @TODO: set the second value (index) properly
+          event_key = XLookupKeysym(&(e.xkey), 0);
+          key_string = XKeysymToString(event_key);
+          printf("Key pressed: %s\n", key_string);
           break;
       }
     }

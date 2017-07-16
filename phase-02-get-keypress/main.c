@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
           // Handle KeyPress events.
           // @TODO: set the second value (index) properly
           charcount = XLookupString(&(e.xkey), lookup_buffer, lookup_buffer_size, &lookup_keysym, NULL);
-          printf("Lookup String: %s\n", lookup_buffer)
+          printf("Lookup String: %s\n", lookup_buffer);
 
           event_key_0 = XLookupKeysym(&(e.xkey), 0);
           event_key_1 = XLookupKeysym(&(e.xkey), 1);

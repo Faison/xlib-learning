@@ -95,8 +95,10 @@ int main(int argc, char *argv[])
   double mill_store = 0;
 
   // A couple of variables used to deal with KeyPress and KeyRelease events.
-  KeySym event_key_0, event_key_1;
-  char *key_0_string = NULL, *key_1_string = NULL;
+  KeySym event_key_0, event_key_1, lookup_keysym;
+  char *key_0_string = NULL, *key_1_string = NULL, lookup_buffer[20];
+  int lookup_buffer_size = 20, charcount = 0;
+
 
   while(!done) {
     // Get the current time.
@@ -119,8 +121,23 @@ int main(int argc, char *argv[])
           }
           break;
         case KeyPress:
+          /*
+           * So there are two ways to deal with keypress events that I can find:
+           *
+           * 1. Use XLookupString to get the "string" value of the keypress. That will return the proper value
+           *    when considering things like holding shift, caps lock enabled, numlock enabled, etc.
+           *    It will not return a string value if you do a keypress combination that doesn't type a "character".
+           *    This method probably works great for when you need a user to enter text.
+           * 2. Use XLookupKeysym to get two Keysyms for index 0 and 1. Then, based on the key mask in e.xkey.state,
+           *    determine what was pressed (Like Ctrl + Shift + Up).
+           *    This method wouldn't work well for when a user is entering text.
+           *    This method probably works best for game controls.
+           */
           // Handle KeyPress events.
           // @TODO: set the second value (index) properly
+          charcount = XLookupString(&(e.xkey), lookup_buffer, lookup_buffer_size, &lookup_keysym, NULL);
+          printf("Lookup String: %s\n", lookup_buffer)
+
           event_key_0 = XLookupKeysym(&(e.xkey), 0);
           event_key_1 = XLookupKeysym(&(e.xkey), 1);
           key_0_string = XKeysymToString(event_key_0);

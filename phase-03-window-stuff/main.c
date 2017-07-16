@@ -6,12 +6,15 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
 // ~16.6 ms between frames is ~60 fps.
 #define RATE_LIMIT 16.6
+
+#define _NET_WM_STATE_TOGGLE 2
 
 // Forward declaration of this function so we can use it in main().
 double timespec_diff(struct timespec *a, struct timespec *b);
@@ -103,16 +106,15 @@ int main(int argc, char *argv[])
   // windowed/fullscreen switching stuff.
   Atom wm_state = XInternAtom(dpy, "_NET_WM_STATE", False);
   Atom fullscreen = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
-  Atom windowed = XInternAtom(dpy, "_NET_WM_STATE_MODAL", False);
   XEvent window_change_event;
   memset(&window_change_event, 0, sizeof(window_change_event));
   window_change_event.type = ClientMessage;
   window_change_event.xclient.window = win;
   window_change_event.xclient.message_type = wm_state;
   window_change_event.xclient.format = 32;
-  window_change_event.xclient.data.l[0] = 1;
-  window_change_event.xclient.data.l[0] = fullscreen;
-  window_change_event.xclient.data.l[0] = 0;
+  window_change_event.xclient.data.l[0] = _NET_WM_STATE_TOGGLE;
+  window_change_event.xclient.data.l[1] = fullscreen;
+  window_change_event.xclient.data.l[2] = 0;
 
   while(!done) {
     // Get the current time.
@@ -172,6 +174,9 @@ int main(int argc, char *argv[])
             done = True;
             printf("Pressed Ctrl+q, quitting.\n");
             continue;
+          } else if (XK_F11 == event_key_0) {
+            XSendEvent(dpy, DefaultRootWindow(dpy), False, SubstructureRedirectMask | SubstructureNotifyMask, &window_change_event);
+            XFlush(dpy);
           }
 
           if (chatting) {

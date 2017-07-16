@@ -151,7 +151,7 @@ int main(int argc, char *argv[])
               printf("Message: \n");
               chatting = True;
             }
-          } else if (event_key_0 == XK_Escape) {
+          } else if (event_key_0 == XK_Escape || (XK_q == event_key_0 && e.xkey.state & ControlMask)) {
             done = True;
           }
 

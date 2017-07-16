@@ -98,6 +98,7 @@ int main(int argc, char *argv[])
   KeySym event_key_0, event_key_1, lookup_keysym;
   char *key_0_string = NULL, *key_1_string = NULL, lookup_buffer[20];
   int lookup_buffer_size = 20, charcount = 0;
+  Bool chatting = False;
 
 
   while(!done) {
@@ -136,71 +137,83 @@ int main(int argc, char *argv[])
           // Handle KeyPress events.
           // @TODO: set the second value (index) properly
           charcount = XLookupString(&(e.xkey), lookup_buffer, lookup_buffer_size, &lookup_keysym, NULL);
-          printf("Lookup String: %s\n", lookup_buffer);
 
           event_key_0 = XLookupKeysym(&(e.xkey), 0);
           event_key_1 = XLookupKeysym(&(e.xkey), 1);
           key_0_string = XKeysymToString(event_key_0);
           key_1_string = XKeysymToString(event_key_1);
-          printf("Key pressed: %s - %s", key_0_string, key_1_string);
 
-          if (e.xkey.state & ShiftMask) {
-            printf(" | Shift");
-          }
-          if (e.xkey.state & LockMask) {
-            printf(" | Lock");
-          }
-          if (e.xkey.state & ControlMask) {
-            printf(" | Ctrl");
-          }
-          if (e.xkey.state & Mod1Mask) {
-            printf(" | Alt");
-          }
-          if (e.xkey.state & Mod2Mask) {
-            printf(" | Num Lock");
-          }
-          if (e.xkey.state & Mod3Mask) {
-            printf(" | Mod3");
-          }
-          if (e.xkey.state & Mod4Mask) {
-            printf(" | Mod4");
-          }
-          if (e.xkey.state & Mod5Mask) {
-            printf(" | Mod5");
+          if (XK_Return == event_key_0) {
+            if (chatting) {
+              printf("\n-Done Chatting-\n");
+              chatting = False;
+            } else {
+              printf("Message: \n");
+              chatting = True;
+            }
           }
 
+          if (chatting) {
+            printf("%s", lookup_buffer);
+          } else {
+            printf("Key pressed: %s - %s", key_0_string, key_1_string);
+            if (e.xkey.state & ShiftMask) {
+              printf(" | Shift");
+            }
+            if (e.xkey.state & LockMask) {
+              printf(" | Lock");
+            }
+            if (e.xkey.state & ControlMask) {
+              printf(" | Ctrl");
+            }
+            if (e.xkey.state & Mod1Mask) {
+              printf(" | Alt");
+            }
+            if (e.xkey.state & Mod2Mask) {
+              printf(" | Num Lock");
+            }
+            if (e.xkey.state & Mod3Mask) {
+              printf(" | Mod3");
+            }
+            if (e.xkey.state & Mod4Mask) {
+              printf(" | Mod4");
+            }
+            if (e.xkey.state & Mod5Mask) {
+              printf(" | Mod5");
+            }
 
-          if (IsCursorKey(event_key_0)) {
-            printf(" | Cursor Key (0)");
+            if (IsCursorKey(event_key_0)) {
+              printf(" | Cursor Key (0)");
+            }
+            if (IsCursorKey(event_key_1)) {
+              printf(" | Cursor Key (1)");
+            }
+            if (IsFunctionKey(event_key_0)) {
+              printf(" | Function key (0)");
+            }
+            if (IsFunctionKey(event_key_1)) {
+              printf(" | Function key (1)");
+            }
+            if (IsKeypadKey(event_key_0)) {
+              printf(" | keypad (0)");
+            }
+            if (IsKeypadKey(event_key_1)) {
+              printf(" | keypad (1)");
+            }
+            if (IsMiscFunctionKey(event_key_0)) {
+              printf(" | Fn (0)");
+            }
+            if (IsMiscFunctionKey(event_key_1)) {
+              printf(" | Fn (1)");
+            }
+            if (IsModifierKey(event_key_0)) {
+              printf(" | Modifier (0)");
+            }
+            if (IsModifierKey(event_key_1)) {
+              printf(" | Modifier (1)");
+            }
+            printf("\n");
           }
-          if (IsCursorKey(event_key_1)) {
-            printf(" | Cursor Key (1)");
-          }
-          if (IsFunctionKey(event_key_0)) {
-            printf(" | Function key (0)");
-          }
-          if (IsFunctionKey(event_key_1)) {
-            printf(" | Function key (1)");
-          }
-          if (IsKeypadKey(event_key_0)) {
-            printf(" | keypad (0)");
-          }
-          if (IsKeypadKey(event_key_1)) {
-            printf(" | keypad (1)");
-          }
-          if (IsMiscFunctionKey(event_key_0)) {
-            printf(" | Fn (0)");
-          }
-          if (IsMiscFunctionKey(event_key_1)) {
-            printf(" | Fn (1)");
-          }
-          if (IsModifierKey(event_key_0)) {
-            printf(" | Modifier (0)");
-          }
-          if (IsModifierKey(event_key_1)) {
-            printf(" | Modifier (1)");
-          }
-          printf("\n");
           break;
       }
     }

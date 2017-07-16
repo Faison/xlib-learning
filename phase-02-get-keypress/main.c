@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
            *    when considering things like holding shift, caps lock enabled, numlock enabled, etc.
            *    It will not return a string value if you do a keypress combination that doesn't type a "character".
            *    This method probably works great for when you need a user to enter text.
-           * 2. Use XLookupKeysym to get two Keysyms for index 0 and 1. Then, based on the key mask in e.xkey.state,
+           * 2. Use XLookupKeysym to get two Keysyms for index 0 and 1 (0 is normal click, 1 is shift or caps lock). Then, based on the key mask in e.xkey.state,
            *    determine what was pressed (Like Ctrl + Shift + Up).
            *    This method wouldn't work well for when a user is entering text.
            *    This method probably works best for game controls.

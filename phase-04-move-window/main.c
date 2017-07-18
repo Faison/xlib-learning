@@ -74,6 +74,17 @@ int main(int argc, char *argv[])
   // Block execution until the window is exposed.
   XWindowEvent(dpy, win, ExposureMask, &e);
 
+  // Get the Window Attributes (After Exposure) in order to get the initial x and y position.
+  XWindowAttributes attributes;
+  XGetWindowAttributes(dpy, win, &attributes);
+
+  // Put the initial position into some variables that will be used to move around the window.
+  int pos_x = attributes.x;
+  int pos_y = attributes.y;
+
+  // Output the initial x and y position.
+  printf("x: %d, y: %d\n", pos_x, pos_y);
+
   // After being exposed, we'll tell X what input events we want to know about here.
   XSelectInput(dpy, win, KeyPressMask);
 

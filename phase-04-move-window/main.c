@@ -15,6 +15,7 @@
 #define RATE_LIMIT 16.6
 
 #define _NET_WM_STATE_TOGGLE 2
+#define _NET_WM_MOVERESIZE_MOVE_KEYBOARD 10
 // Forward declaration of this function so we can use it in main().
 double timespec_diff(struct timespec *a, struct timespec *b);
 
@@ -113,6 +114,19 @@ int main(int argc, char *argv[])
   int lookup_buffer_size = 20, charcount = 0;
   Bool chatting = False;
 
+  // Window Move Event.
+  Atom wm_moveresize = XInternAtom(dpy, "_NET_WM_MOVERESIZE", False);
+  XEvent move_window_event;
+  memset(&move_window_event, 0, sizeof(move_window_event));
+  move_window_event.type = ClientMessage;
+  move_window_event.xclient.window = win;
+  move_window_event.xclient.message_type = wm_moveresize;
+  move_window_event.xclient.format = 32;
+  move_window_event.xclient.data.l[0] = pos_x;
+  move_window_event.xclient.data.l[1] = pos_y;
+  move_window_event.xclient.data.l[2] = _NET_WM_MOVERESIZE_MOVE_KEYBOARD;
+  move_window_event.xclient.data.l[4] = 1;
+
   while(!done) {
     // Get the current time.
     clock_gettime(CLOCK_MONOTONIC_RAW, &curr);
@@ -171,8 +185,15 @@ int main(int argc, char *argv[])
             done = True;
             printf("Pressed Ctrl+q, quitting.\n");
             continue;
-          } else if (XK_n == event_key_0) {
-
+          } else if (XK_Left == event_key_0) {
+            move_window_event.xclient.data.l[0] -= 10;
+            // ConfigureRequest, maybe???
+            XSendEvent(dpy, DefaultRootWindow(dpy), False, ConfigureRequest, &move_window_event);
+            XFlush(dpy);
+          } else if (XK_Right == event_key_0) {
+            move_window_event.xclient.data.l[0] += 10;
+            XSendEvent(dpy, DefaultRootWindow(dpy), False, ConfigureRequest, &move_window_event);
+            XFlush(dpy);
           }
 
           if (chatting) {

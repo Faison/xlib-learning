@@ -179,6 +179,12 @@ int main(int argc, char *argv[])
           } else if (XK_Right == event_key_0) {
             pos_x += 50;
             XMoveWindow(dpy, win, pos_x, pos_y);
+          } else if (XK_Up == event_key_0) {
+            pos_y -= 50;
+            XMoveWindow(dpy, win, pos_x, pos_y);
+          } else if (XK_Down == event_key_0) {
+            pos_y += 50;
+            XMoveWindow(dpy, win, pos_x, pos_y);
           }
 
           if (chatting) {

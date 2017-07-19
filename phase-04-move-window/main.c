@@ -43,10 +43,11 @@ int main(int argc, char *argv[])
   // Setup the Size Hints (also for the Window Manager).
   XSizeHints *sizehints = XAllocSizeHints();
   // This tells other functions that the value for min width and height.
-  sizehints->flags = PMinSize;
+  sizehints->flags = PMinSize | PWinGravity;
   // And these are the values for min width and height.
   sizehints->min_width = 400;
   sizehints->min_height = 300;
+  sizehints->win_gravity = StaticGravity;
 
   /*
    * This particular function does some allocating that doesn't ever get freed.
@@ -75,13 +76,13 @@ int main(int argc, char *argv[])
   // Block execution until the window is exposed.
   XWindowEvent(dpy, win, ExposureMask, &e);
 
-  // Get the Window Attributes (After Exposure) in order to get the initial x and y position.
-  XWindowAttributes attributes;
-  XGetWindowAttributes(dpy, win, &attributes);
-
-  // Put the initial position into some variables that will be used to move around the window.
-  int pos_x = attributes.x;
-  int pos_y = attributes.y;
+  // Variables needed to get the window's starting position.
+  int pos_x = 0;
+  int pos_y = 0;
+  // This is needed for some reason, not sure what though.
+  Window child;
+  // This translates the 0,0 position of the window to a screen position.
+  XTranslateCoordinates(dpy, win, DefaultRootWindow(dpy), 0, 0, &pos_x, &pos_y, &child);
 
   // Output the initial x and y position.
   printf("x: %d, y: %d\n", pos_x, pos_y);

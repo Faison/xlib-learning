@@ -60,6 +60,14 @@ int main(int argc, char *argv[])
   // Tell X that we want to be notified of the Exposure event, so we can know when our window is initially visible.
   XSelectInput(dpy, win, ExposureMask);
 
+  // Create a subwindow that has a white border.
+  unsigned long white = WhitePixel(dpy, DefaultScreen(dpy));
+  Window sub = XCreateSimpleWindow(dpy, win, 0, 0, 20, 20, 5, white, black);
+  int sub_x = 0;
+  int sub_y = 0;
+
+  XMapWindow(dpy, sub);
+
   // Grab a copy of X's representation of WM_PROTOCOLS, used in checking for window closed events.
   Atom wm_protocol = XInternAtom(dpy, "WM_PROTOCOLS", True);
   // Let the Window Manager know that we want the event when a user closes the window.

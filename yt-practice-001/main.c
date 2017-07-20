@@ -9,7 +9,9 @@
  */
 
 #include <stdlib.h>
+#include <unistd.h>
 #include <X11/Xlib.h>
+#include <X11/Xutil.h>
 
 int main(int argc, char **argv)
 {
@@ -26,7 +28,25 @@ int main(int argc, char **argv)
   // Creates the window, not currently mapped and displayed.
   Window window = XCreateSimpleWindow(display, DefaultRootWindow(display), 0, 0, 800, 600, 0, blackpixel, blackpixel);
 
+  // Setup the hints for the Window Manager (Neeed for the window to actually show)
+  XWMHints *wmhints = XAllocWMHints();
+  // Specify that the WM Hints includes a value for the state.
+  wmhints->flags = StateHint;
+  // If we don't specify the initial state to be Normal, then it defaults to Withdrawn.
+  wmhints->initial_state = NormalState;
+
+  XSetWMHints(display, window, wmhints);
+
+  // Mapping the window to the display causes it to display.
+  XMapWindow(display, window);
+
+  // Use sleep to pause long enough for us to see the window.
+  sleep(5);
+
   // Cleanup after ourselves.
+  XFree(wmhints);
+  wmhints = NULL;
+
   XDestroyWindow(display, window);
   XCloseDisplay(display);
   display = NULL;

@@ -9,8 +9,21 @@
  */
 
 #include <stdlib.h>
+#include <X11/Xlib.h>
 
 int main(int argc, char **argv)
 {
+  // Open a connection to the X server.
+  Display *display = XOpenDisplay(NULL);
+
+  // Exit early if the display fails to open.
+  if (display == NULL) {
+    return EXIT_FAILURE;
+  }
+
+  // Cleanup after ourselves.
+  XCloseDisplay(display);
+  display = NULL;
+
   return EXIT_SUCCESS;
 }

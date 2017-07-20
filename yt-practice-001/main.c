@@ -37,8 +37,17 @@ int main(int argc, char **argv)
 
   XSetWMHints(display, window, wmhints);
 
+  // For some reason, the window isn't displaying unless we capture the Exposure event, so tell the x server we want to have this event.
+  XSelectInput(display, window, ExposureMask);
+
   // Mapping the window to the display causes it to display.
   XMapWindow(display, window);
+
+  // This variable will be used in processing events.
+  XEvent e;
+
+  // This function blocks until an Exposure event is thrown, and we don't want to do anything else until the window is exposed.
+  XWindowEvent(display, window, ExposureMask, &e);
 
   // Use sleep to pause long enough for us to see the window.
   sleep(5);

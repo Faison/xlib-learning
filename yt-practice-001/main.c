@@ -7,3 +7,10 @@
  *   - Make the window stay open until you click the close button.
  *   - Make sure to clean up after ourselves, shooting for 0 leaks.
  */
+
+ #include <stdlib.h>
+
+int main(int argc, char argv[])
+{
+  return EXIT_SUCCESS;
+}

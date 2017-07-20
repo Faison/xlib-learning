@@ -3,7 +3,7 @@
  *
  * The goals of the first video are as follows:
  *   - Compile barebones C program using a Makefile.
- *   - Open a window, make it display on the screen for a few seconds (using sleep).
+ *   - Open a window, make it display on the screen for a few seconds (using sleep). 0:55:00
  *   - Make the window stay open until you click the close button.
  *   - Make sure to clean up after ourselves, shooting for 0 leaks.
  */

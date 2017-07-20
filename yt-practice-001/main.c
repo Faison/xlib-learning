@@ -21,7 +21,13 @@ int main(int argc, char **argv)
     return EXIT_FAILURE;
   }
 
+  // Grab the number for the black pixel for use in creating the window.
+  unsigned long blackpixel = BlackPixel(display, DefaultScreen(display));
+  // Creates the window, not currently mapped and displayed.
+  Window window = XCreateSimpleWindow(display, DefaultRootWindow(display), 0, 0, 800, 600, 0, blackpixel, blackpixel);
+
   // Cleanup after ourselves.
+  XDestroyWindow(display, window);
   XCloseDisplay(display);
   display = NULL;
 

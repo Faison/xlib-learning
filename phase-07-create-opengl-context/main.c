@@ -7,6 +7,8 @@
  * This code won't be structured very well, just trying to get stuff working.
  */
 #include <errno.h>
+#include <GL/gl.h>
+#include <GL/glx.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -18,6 +20,26 @@
 #define RATE_LIMIT 16.6
 
 #define _NET_WM_STATE_TOGGLE 2
+
+// OpenGL Attribute list for double buffer.
+static int attr_list_double[] = {
+  GLX_RGBA,       GLX_DOUBLEBUFFER,
+  GLX_RED_SIZE,   4,
+  GLX_GREEN_SIZE, 4,
+  GLX_BLUE_SIZE,  4,
+  GLX_DEPTH_SIZE, 16,
+  None,
+};
+
+// OpenGL Attribute list for non double buffer (single buffer?).
+static int attr_list_single[] = {
+  GLX_RGBA,
+  GLX_RED_SIZE,   4,
+  GLX_GREEN_SIZE, 4,
+  GLX_BLUE_SIZE,  4,
+  GLX_DEPTH_SIZE, 16,
+  None,
+};
 
 // Forward declaration of this function so we can use it in main().
 double timespec_diff(struct timespec *a, struct timespec *b);
@@ -71,6 +93,40 @@ int main(int argc, char *argv[])
 
   // Map the window to the display.
   XMapWindow(dpy, win);
+
+  // Start building the OpenGL Context.
+
+  // We need to know if double buffering is available.
+  Bool double_buffer = False;
+
+  /**
+   * So a lot of libraries don't care if they introduce memory leaks that are
+   * still reachable. From what I've read online, if it's still reachable, then
+   * that typically means the leak is known and isn't something that gets out of control.
+   * If you were to generate that sort of a leak in a big ol' loop, then the leaks
+   * would likely become definitely lost (the bad kind of memory leak).
+   *
+   * Anyways, glXChooseVisual() introduces more reachable leaks *sigh*.
+   * Valgrind 5,636 bytes in 17 blocks that are still reachable.
+   */
+  // Get the Visual Info for a double buffered OpenGL Context.
+  XVisualInfo *vi = NULL;
+  vi = glXChooseVisual(dpy, DefaultScreen(dpy), attr_list_double);
+
+  if (vi == NULL) {
+    // If we failed to get double buffered info, get the single buffered info.
+    vi = glXChooseVisual(dpy, DefaultScreen(dpy), attr_list_single);
+    double_buffer = False;
+    printf("Single Buffered rendering will be used, no double buffering available\n");
+  } else {
+    // Double buffer was a valid choice.
+    double_buffer = True;
+    printf("Double Buffered rendering available\n");
+  }
+
+  // Free up the Visual Info after we're done creating the OpenGL context.
+  XFree(vi);
+  vi = NULL;
 
   // This variable will be used to examine events thrown to our application window.
   XEvent e;

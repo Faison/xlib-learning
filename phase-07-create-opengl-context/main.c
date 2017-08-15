@@ -44,27 +44,36 @@ static int attr_list_single[] = {
 
 // Define a square's points (the first four points) and a triangle's points (the latter 3).
 float points[] = {
-   0.0f,  0.5f, 0.0f,
-   1.0f,  0.5f, 0.0f,
-   0.5f, -0.5f, 0.0f,
-  -0.5f, -0.5f, 0.0f,
-  -0.2f,  0.5f, 0.0f,
-  -0.7f, -0.5f, 0.0f,
-  -1.2f,  0.5f, 0.0f
+   0.0f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
+   1.0f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
+   0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
+  -0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 1.0f
+  // -0.2f,  0.5f, 0.0f,
+  // -0.7f, -0.5f, 0.0f,
+  // -1.2f,  0.5f, 0.0f
+};
+
+GLuint elements[] = {
+  0, 1, 2,
+  2, 3, 0
 };
 
 const char *vertex_shader =
   "#version 450\n"
   "in vec3 vp;"
+  "in vec3 color;"
+  "out vec3 Color;"
   "void main() {"
+  "  Color = color;"
   "  gl_Position = vec4(vp, 1.0);"
   "}";
 
 const char *fragment_shader =
   "#version 450\n"
+  "in vec3 Color;"
   "out vec4 frag_color;"
   "void main() {"
-  "  frag_color = vec4(0.5, 0.0, 0.5, 1.0);"
+  "  frag_color = vec4(Color, 1.0);"
   "}";
 
 // Forward declaration of this function so we can use it in main().
@@ -176,24 +185,6 @@ int main(int argc, char *argv[])
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
 
-  // Create the vertex buffer.
-  GLuint vbo = 0;
-  // So this creates a vertex buffer in the graphics card.
-  glGenBuffers(1, &vbo);
-  // It then sets the buffer as Vertex Attributes.
-  glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  // Finally, we tell the graphics card that we're giving it 12 points in an array.
-  glBufferData(GL_ARRAY_BUFFER, 27 * sizeof(float), points, GL_STATIC_DRAW);
-
-  // Create the vertex array object.
-  GLuint vao = 0;
-  glGenVertexArrays(2, &vao);
-  glBindVertexArray(vao);
-  glEnableVertexAttribArray(0);
-  glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-  glBindVertexArray(0);
-
   // Compile the Vertex Shader.
   GLuint vs = glCreateShader(GL_VERTEX_SHADER);
   glShaderSource(vs, 1, &vertex_shader, NULL);
@@ -207,7 +198,36 @@ int main(int argc, char *argv[])
   GLuint shader_program = glCreateProgram();
   glAttachShader(shader_program, fs);
   glAttachShader(shader_program, vs);
+  glBindFragDataLocation(shader_program, 0, "frag_color");
   glLinkProgram(shader_program);
+
+  // Create the vertex buffer.
+  GLuint vbo = 0;
+  // So this creates a vertex buffer in the graphics card.
+  glGenBuffers(1, &vbo);
+  // It then sets the buffer as Vertex Attributes.
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  // Finally, we tell the graphics card that we're giving it 12 points in an array.
+  glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
+
+  GLuint ebo;
+  glGenBuffers(1, &ebo);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
+
+  // Create the vertex array object.
+  GLuint vao = 0;
+  glGenVertexArrays(2, &vao);
+  glBindVertexArray(vao);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+  GLint posAttrib = glGetAttribLocation(shader_program, "vp");
+  glEnableVertexAttribArray(posAttrib);
+  glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), 0);
+  GLint colAttrib = glGetAttribLocation(shader_program, "color");
+  glEnableVertexAttribArray(colAttrib);
+  glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+  glBindVertexArray(0);
 
   // This variable will be used to examine events thrown to our application window.
   XEvent e;
@@ -403,9 +423,10 @@ int main(int argc, char *argv[])
       glUseProgram(shader_program);
       glBindVertexArray(vao);
       // Draw the "square".
-      glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+      // glDrawArrays(GL_TRIANGLES, 0, 3);
+      glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
       // Draw the triangle.
-      glDrawArrays(GL_TRIANGLES, 4, 7);
+      // glDrawArrays(GL_TRIANGLES, 4, 7);
 
       if (double_buffer) {
         glXSwapBuffers(dpy, win);
@@ -456,6 +477,8 @@ int main(int argc, char *argv[])
   vao = NULL;
   glDeleteBuffers(1, &vbo);
   vbo = NULL;
+  glDeleteBuffers(1, &ebo);
+  ebo = NULL;
 
   glXMakeCurrent(dpy, None, NULL);
   glXDestroyContext(dpy, opengl_context);

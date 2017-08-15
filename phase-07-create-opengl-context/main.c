@@ -42,8 +42,8 @@ static int attr_list_single[] = {
   None,
 };
 
-// Define a square's points.
-float square_points[] = {
+// Define a square's points (the first four points) and a triangle's points (the latter 3).
+float points[] = {
    0.0f,  0.5f, 0.0f,
    1.0f,  0.5f, 0.0f,
    0.5f, -0.5f, 0.0f,
@@ -183,7 +183,7 @@ int main(int argc, char *argv[])
   // It then sets the buffer as Vertex Attributes.
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
   // Finally, we tell the graphics card that we're giving it 12 points in an array.
-  glBufferData(GL_ARRAY_BUFFER, 27 * sizeof(float), square_points, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, 27 * sizeof(float), points, GL_STATIC_DRAW);
 
   // Create the vertex array object.
   GLuint vao = 0;
@@ -402,8 +402,9 @@ int main(int argc, char *argv[])
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
       glUseProgram(shader_program);
       glBindVertexArray(vao);
-      // Draw points 0-3 from the currently bound VAO with current in-use shader.
+      // Draw the "square".
       glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+      // Draw the triangle.
       glDrawArrays(GL_TRIANGLES, 4, 7);
 
       if (double_buffer) {

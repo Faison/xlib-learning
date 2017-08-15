@@ -65,6 +65,9 @@ int main(int argc, char *argv[])
   Window sub = XCreateSimpleWindow(dpy, win, 0, 0, 20, 20, 5, white, black);
   int sub_x = 0;
   int sub_y = 0;
+  Bool moving_square = False;
+  int move_offset_x = 0;
+  int move_offset_y = 0;
 
   XMapWindow(dpy, sub);
 
@@ -84,7 +87,7 @@ int main(int argc, char *argv[])
   XWindowEvent(dpy, win, ExposureMask, &e);
 
   // After being exposed, we'll tell X what input events we want to know about here.
-  XSelectInput(dpy, win, KeyPressMask);
+  XSelectInput(dpy, win, KeyPressMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask);
 
   // The loop
   // @TODO: Use sleeping to avoid taking up all CPU cycles.
@@ -249,6 +252,36 @@ int main(int argc, char *argv[])
             printf("\n");
           }
           break;
+        case ButtonPress:
+          printf("Button %d press at %d,%d\n", e.xbutton.button, e.xbutton.x, e.xbutton.y);
+
+          if (e.xbutton.button == 1 && e.xbutton.x >= sub_x && e.xbutton.x < sub_x + 30 && e.xbutton.y >= sub_y && e.xbutton.y < sub_y + 30) {
+            moving_square = True;
+            move_offset_x = e.xbutton.x - sub_x;
+            move_offset_y = e.xbutton.y - sub_y;
+            printf("Clicked in the square!\n");
+          }
+
+          break;
+        case ButtonRelease:
+          printf("Button %d released at %d,%d\n", e.xbutton.button, e.xbutton.x, e.xbutton.y);
+
+          if (e.xbutton.button == 1 && moving_square) {
+            moving_square = False;
+
+            sub_x = e.xbutton.x - move_offset_x;
+            sub_y = e.xbutton.y - move_offset_y;
+
+            move_offset_x = 0;
+            move_offset_y = 0;
+          }
+          break;
+        case MotionNotify:
+          if (moving_square) {
+            sub_x = e.xmotion.x - move_offset_x;
+            sub_y = e.xmotion.y - move_offset_y;
+          }
+          break;
       }
     }
 
@@ -265,6 +298,9 @@ int main(int argc, char *argv[])
       for (; mill_store > RATE_LIMIT && ! done; mill_store -= RATE_LIMIT) {
         // Things that should run once per tick/frame will go here.
       }
+
+      // Only render once per main loop, maybe?
+      XMoveWindow(dpy, sub, sub_x, sub_y);
     }
 
     // Update the previous timespec with the most recent timespec so we can calculate the diff next time around.

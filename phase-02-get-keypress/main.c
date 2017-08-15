@@ -1,5 +1,5 @@
 /**
- * Phase 01 - Get a Window that works and can be closed.
+ * Phase 02 - Get keypresses.
  *
  * This code won't be structured very well, just trying to get stuff working.
  */

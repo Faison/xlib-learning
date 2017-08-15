@@ -1,5 +1,5 @@
 /**
- * Phase 03 - Switch to windowed fullscreen when clicking F11.
+ * Phase 05 - Move a subwindow around with click-dragging.
  *
  * This code won't be structured very well, just trying to get stuff working.
  */
@@ -60,6 +60,17 @@ int main(int argc, char *argv[])
   // Tell X that we want to be notified of the Exposure event, so we can know when our window is initially visible.
   XSelectInput(dpy, win, ExposureMask);
 
+  // Create a subwindow that has a white border.
+  unsigned long white = WhitePixel(dpy, DefaultScreen(dpy));
+  Window sub = XCreateSimpleWindow(dpy, win, 0, 0, 20, 20, 5, white, black);
+  int sub_x = 0;
+  int sub_y = 0;
+  Bool moving_square = False;
+  int move_offset_x = 0;
+  int move_offset_y = 0;
+
+  XMapWindow(dpy, sub);
+
   // Grab a copy of X's representation of WM_PROTOCOLS, used in checking for window closed events.
   Atom wm_protocol = XInternAtom(dpy, "WM_PROTOCOLS", True);
   // Let the Window Manager know that we want the event when a user closes the window.
@@ -76,7 +87,7 @@ int main(int argc, char *argv[])
   XWindowEvent(dpy, win, ExposureMask, &e);
 
   // After being exposed, we'll tell X what input events we want to know about here.
-  XSelectInput(dpy, win, KeyPressMask);
+  XSelectInput(dpy, win, KeyPressMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask);
 
   // The loop
   // @TODO: Use sleeping to avoid taking up all CPU cycles.
@@ -241,6 +252,39 @@ int main(int argc, char *argv[])
             printf("\n");
           }
           break;
+        case ButtonPress:
+          printf("Button %d press at %d,%d\n", e.xbutton.button, e.xbutton.x, e.xbutton.y);
+
+          // Detect a mouse button click on the subwindow.
+          if (e.xbutton.button == 1 && e.xbutton.x >= sub_x && e.xbutton.x < sub_x + 30 && e.xbutton.y >= sub_y && e.xbutton.y < sub_y + 30) {
+            moving_square = True;
+            move_offset_x = e.xbutton.x - sub_x;
+            move_offset_y = e.xbutton.y - sub_y;
+            printf("Clicked in the square!\n");
+          }
+
+          break;
+        case ButtonRelease:
+          printf("Button %d released at %d,%d\n", e.xbutton.button, e.xbutton.x, e.xbutton.y);
+
+          // Make sure the subwindow's x and y position is correct when the mouse button is released.
+          if (e.xbutton.button == 1 && moving_square) {
+            moving_square = False;
+
+            sub_x = e.xbutton.x - move_offset_x;
+            sub_y = e.xbutton.y - move_offset_y;
+
+            move_offset_x = 0;
+            move_offset_y = 0;
+          }
+          break;
+        case MotionNotify:
+          // Update the subwindow's x and y position as we receive mouse motion notifications.
+          if (moving_square) {
+            sub_x = e.xmotion.x - move_offset_x;
+            sub_y = e.xmotion.y - move_offset_y;
+          }
+          break;
       }
     }
 
@@ -257,6 +301,15 @@ int main(int argc, char *argv[])
       for (; mill_store > RATE_LIMIT && ! done; mill_store -= RATE_LIMIT) {
         // Things that should run once per tick/frame will go here.
       }
+
+      // Only render once per main loop, maybe?
+
+      /*
+       * Note: This is the least performant option in this exact scenario. But since a video game
+       * will be redrawing the screen every frame, this is the "correct" way to do it.
+       * It will become more correct when we switch to an OpenGL context and away from subwindows.
+       */
+      XMoveWindow(dpy, sub, sub_x, sub_y);
     }
 
     // Update the previous timespec with the most recent timespec so we can calculate the diff next time around.

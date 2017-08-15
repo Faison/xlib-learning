@@ -124,6 +124,13 @@ int main(int argc, char *argv[])
     printf("Double Buffered rendering available\n");
   }
 
+  // Create the OpenGL Context
+  GLXContext opengl_context;
+  opengl_context = glXCreateContext(dpy, vi, NULL, True);
+
+  // Set the new OpenGL Context as the Current OpenGL context.
+  glXMakeCurrent(dpy, win, opengl_context);
+
   // Free up the Visual Info after we're done creating the OpenGL context.
   XFree(vi);
   vi = NULL;
@@ -353,6 +360,12 @@ int main(int argc, char *argv[])
   }
 
   // Free all the things.
+
+  // Free all the OpenGL things.
+  glXMakeCurrent(dpy, None, NULL);
+  glXDestroyContext(dpy, opengl_context);
+
+  // Free all the Window things.
   XFree(sizehints);
   sizehints = NULL;
   XFree(wmhints);

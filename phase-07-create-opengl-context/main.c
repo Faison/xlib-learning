@@ -131,6 +131,13 @@ int main(int argc, char *argv[])
   // Set the new OpenGL Context as the Current OpenGL context.
   glXMakeCurrent(dpy, win, opengl_context);
 
+  // Check if direct rendering is enabled.
+  if (glXIsDirect(dpy, opengl_context)) {
+    printf("Direct Rendering enabled\n");
+  } else {
+    printf("No Direct Rendering available\n");
+  }
+
   // Free up the Visual Info after we're done creating the OpenGL context.
   XFree(vi);
   vi = NULL;

@@ -138,6 +138,10 @@ int main(int argc, char *argv[])
     printf("No Direct Rendering available\n");
   }
 
+  // Print out the version (Should be used at some point to restrict running to > 4.0).
+  printf("OpenGL Version: %s\n", glGetString(GL_VERSION));
+  printf("OpenGL Shading Language Verison: %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
+
   // Free up the Visual Info after we're done creating the OpenGL context.
   XFree(vi);
   vi = NULL;

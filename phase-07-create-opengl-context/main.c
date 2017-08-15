@@ -1,5 +1,8 @@
 /**
- * Phase 03 - Switch to windowed fullscreen when clicking F11.
+ * Phase 07 - Create an OpenGL Context.
+ *
+ * The main goal of this phase is to see if it makes sense to structure the Xlib
+ * code without the OpenGL code, or if they are married together.
  *
  * This code won't be structured very well, just trying to get stuff working.
  */

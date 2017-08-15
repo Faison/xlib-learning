@@ -8,6 +8,7 @@
  */
 #include <errno.h>
 #include <GL/gl.h>
+#include <GL/glu.h>
 #include <GL/glx.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -40,6 +41,31 @@ static int attr_list_single[] = {
   GLX_DEPTH_SIZE, 16,
   None,
 };
+
+// Define a square's points.
+float square_points[] = {
+   0.0f,  0.5f, 0.0f,
+   1.0f,  0.5f, 0.0f,
+   0.5f, -0.5f, 0.0f,
+  -0.5f, -0.5f, 0.0f,
+  -0.2f,  0.5f, 0.0f,
+  -0.7f, -0.5f, 0.0f,
+  -1.2f,  0.5f, 0.0f
+};
+
+const char *vertex_shader =
+  "#version 450\n"
+  "in vec3 vp;"
+  "void main() {"
+  "  gl_Position = vec4(vp, 1.0);"
+  "}";
+
+const char *fragment_shader =
+  "#version 450\n"
+  "out vec4 frag_color;"
+  "void main() {"
+  "  frag_color = vec4(0.5, 0.0, 0.5, 1.0);"
+  "}";
 
 // Forward declaration of this function so we can use it in main().
 double timespec_diff(struct timespec *a, struct timespec *b);
@@ -145,6 +171,43 @@ int main(int argc, char *argv[])
   // Free up the Visual Info after we're done creating the OpenGL context.
   XFree(vi);
   vi = NULL;
+
+  // Set the OpenGL Depth Testing
+  glEnable(GL_DEPTH_TEST);
+  glDepthFunc(GL_LESS);
+
+  // Create the vertex buffer.
+  GLuint vbo = 0;
+  // So this creates a vertex buffer in the graphics card.
+  glGenBuffers(1, &vbo);
+  // It then sets the buffer as Vertex Attributes.
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  // Finally, we tell the graphics card that we're giving it 12 points in an array.
+  glBufferData(GL_ARRAY_BUFFER, 27 * sizeof(float), square_points, GL_STATIC_DRAW);
+
+  // Create the vertex array object.
+  GLuint vao = 0;
+  glGenVertexArrays(2, &vao);
+  glBindVertexArray(vao);
+  glEnableVertexAttribArray(0);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+  glBindVertexArray(0);
+
+  // Compile the Vertex Shader.
+  GLuint vs = glCreateShader(GL_VERTEX_SHADER);
+  glShaderSource(vs, 1, &vertex_shader, NULL);
+  glCompileShader(vs);
+  // Compile the Fragment Shader.
+  GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
+  glShaderSource(fs, 1, &fragment_shader, NULL);
+  glCompileShader(fs);
+
+  // Link the shaders together to create a shader program.
+  GLuint shader_program = glCreateProgram();
+  glAttachShader(shader_program, fs);
+  glAttachShader(shader_program, vs);
+  glLinkProgram(shader_program);
 
   // This variable will be used to examine events thrown to our application window.
   XEvent e;
@@ -334,6 +397,18 @@ int main(int argc, char *argv[])
       for (; mill_store > RATE_LIMIT && ! done; mill_store -= RATE_LIMIT) {
         // Things that should run once per tick/frame will go here.
       }
+
+      // Render Stuff.
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+      glUseProgram(shader_program);
+      glBindVertexArray(vao);
+      // Draw points 0-3 from the currently bound VAO with current in-use shader.
+      glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+      glDrawArrays(GL_TRIANGLES, 4, 7);
+
+      if (double_buffer) {
+        glXSwapBuffers(dpy, win);
+      }
     }
 
     // Update the previous timespec with the most recent timespec so we can calculate the diff next time around.
@@ -373,6 +448,14 @@ int main(int argc, char *argv[])
   // Free all the things.
 
   // Free all the OpenGL things.
+  glDeleteProgram(shader_program);
+  glDeleteShader(vs);
+  glDeleteShader(fs);
+  glDeleteVertexArrays(1, &vao);
+  vao = NULL;
+  glDeleteBuffers(1, &vbo);
+  vbo = NULL;
+
   glXMakeCurrent(dpy, None, NULL);
   glXDestroyContext(dpy, opengl_context);
 

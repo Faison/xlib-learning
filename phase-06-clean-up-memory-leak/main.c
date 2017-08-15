@@ -51,8 +51,12 @@ int main(int argc, char *argv[])
   /*
    * This particular function does some allocating that doesn't ever get freed.
    * Valgrind reports 27,262 bytes in 384 blocks as still reachable because of this.
-   * It's possible that this "leak" could be avoided by using XSetWMProperties()
-   * and creating our own XTextProperty's.
+   * I thought it could be possible to avoid the leak by using XSetWMProperties()
+   * and creating our own XTextProperty's. But after trying that route, the
+   * 27,262 bytes were still reachable and the function XStringListToTextProperty()
+   * Introduced a memory leak of 9 bytes that were classified as "definitely lost."
+   *
+   * Long story lost, this is a non-critical memory leak that we have to live with :(
    */
   // Sets Window properties that are used by the Window Manager.
   Xutf8SetWMProperties(dpy, win, "Phase 01", "", NULL, 0, sizehints, wmhints, NULL);

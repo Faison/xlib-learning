@@ -259,6 +259,7 @@ int main(int argc, char *argv[])
         case ButtonPress:
           printf("Button %d press at %d,%d\n", e.xbutton.button, e.xbutton.x, e.xbutton.y);
 
+          // Detect a mouse button click on the subwindow.
           if (e.xbutton.button == 1 && e.xbutton.x >= sub_x && e.xbutton.x < sub_x + 30 && e.xbutton.y >= sub_y && e.xbutton.y < sub_y + 30) {
             moving_square = True;
             move_offset_x = e.xbutton.x - sub_x;
@@ -270,6 +271,7 @@ int main(int argc, char *argv[])
         case ButtonRelease:
           printf("Button %d released at %d,%d\n", e.xbutton.button, e.xbutton.x, e.xbutton.y);
 
+          // Make sure the subwindow's x and y position is correct when the mouse button is released.
           if (e.xbutton.button == 1 && moving_square) {
             moving_square = False;
 
@@ -281,6 +283,7 @@ int main(int argc, char *argv[])
           }
           break;
         case MotionNotify:
+          // Update the subwindow's x and y position as we receive mouse motion notifications.
           if (moving_square) {
             sub_x = e.xmotion.x - move_offset_x;
             sub_y = e.xmotion.y - move_offset_y;
@@ -304,6 +307,12 @@ int main(int argc, char *argv[])
       }
 
       // Only render once per main loop, maybe?
+
+      /*
+       * Note: This is the least performant option in this exact scenario. But since a video game
+       * will be redrawing the screen every frame, this is the "correct" way to do it.
+       * It will become more correct when we switch to an OpenGL context and away from subwindows.
+       */
       XMoveWindow(dpy, sub, sub_x, sub_y);
     }
 

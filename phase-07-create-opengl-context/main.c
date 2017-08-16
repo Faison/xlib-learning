@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
 
   // Create the vertex array object.
   GLuint vao = 0;
-  glGenVertexArrays(2, &vao);
+  glGenVertexArrays(1, &vao);
   glBindVertexArray(vao);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);

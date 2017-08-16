@@ -46,16 +46,20 @@ static int attr_list_single[] = {
 float points[] = {
    0.0f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
    1.0f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
-   0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
-  -0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 1.0f
-  // -0.2f,  0.5f, 0.0f,
-  // -0.7f, -0.5f, 0.0f,
-  // -1.2f,  0.5f, 0.0f
+   1.0f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
+   0.0f, -0.5f, 0.0f, 1.0f, 1.0f, 1.0f,
+  -0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
+   0.0f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
+  -1.0f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f
 };
 
 GLuint elements[] = {
   0, 1, 2,
   2, 3, 0
+};
+
+GLuint telements[] = {
+  4, 5, 6
 };
 
 const char *vertex_shader =
@@ -210,21 +214,38 @@ int main(int argc, char *argv[])
   // Finally, we tell the graphics card that we're giving it 12 points in an array.
   glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
 
-  GLuint ebo;
-  glGenBuffers(1, &ebo);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+  GLuint ebo[] = {
+    0, 0
+  };
+  glGenBuffers(2, &ebo);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[0]);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[1]);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(telements), telements, GL_STATIC_DRAW);
 
   // Create the vertex array object.
-  GLuint vao = 0;
+  GLuint vao[] = {
+    0, 0
+  };
   glGenVertexArrays(1, &vao);
-  glBindVertexArray(vao);
+  glBindVertexArray(vao[0]);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[0]);
   GLint posAttrib = glGetAttribLocation(shader_program, "vp");
   glEnableVertexAttribArray(posAttrib);
   glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), 0);
   GLint colAttrib = glGetAttribLocation(shader_program, "color");
+  glEnableVertexAttribArray(colAttrib);
+  glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+  glBindVertexArray(0);
+
+  glBindVertexArray(vao[1]);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[1]);
+  posAttrib = glGetAttribLocation(shader_program, "vp");
+  glEnableVertexAttribArray(posAttrib);
+  glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), 0);
+  colAttrib = glGetAttribLocation(shader_program, "color");
   glEnableVertexAttribArray(colAttrib);
   glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
   glBindVertexArray(0);
@@ -421,12 +442,14 @@ int main(int argc, char *argv[])
       // Render Stuff.
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
       glUseProgram(shader_program);
-      glBindVertexArray(vao);
-      // Draw the "square".
-      // glDrawArrays(GL_TRIANGLES, 0, 3);
+
+      // Draw the rectangle
+      glBindVertexArray(vao[0]);
       glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-      // Draw the triangle.
-      // glDrawArrays(GL_TRIANGLES, 4, 7);
+
+      // Draw the triangle
+      glBindVertexArray(vao[1]);
+      glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
 
       if (double_buffer) {
         glXSwapBuffers(dpy, win);
@@ -474,11 +497,8 @@ int main(int argc, char *argv[])
   glDeleteShader(vs);
   glDeleteShader(fs);
   glDeleteVertexArrays(1, &vao);
-  vao = NULL;
   glDeleteBuffers(1, &vbo);
-  vbo = NULL;
   glDeleteBuffers(1, &ebo);
-  ebo = NULL;
 
   glXMakeCurrent(dpy, None, NULL);
   glXDestroyContext(dpy, opengl_context);

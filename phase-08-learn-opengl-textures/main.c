@@ -1,8 +1,9 @@
 /**
- * Phase 07 - Create an OpenGL Context.
+ * Phase 08 - Learn how to do texture stuff in OpenGL.
  *
- * The main goal of this phase is to see if it makes sense to structure the Xlib
- * code without the OpenGL code, or if they are married together.
+ * I'm just playing with OpenGL now, this doesn't have much to do with learning
+ * XLib, except I hope by going through these tutorials that I'll learn how to
+ * size the OpenGL context with the window (Very important).
  *
  * This code won't be structured very well, just trying to get stuff working.
  */

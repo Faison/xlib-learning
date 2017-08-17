@@ -11,9 +11,12 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glx.h>
+#include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 #include <time.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -44,14 +47,12 @@ static int attr_list_single[] = {
 };
 
 // Define a square's points (the first four points) and a triangle's points (the latter 3).
-float points[] = {
-   0.0f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
-   1.0f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
-   1.0f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
-   0.0f, -0.5f, 0.0f, 1.0f, 1.0f, 1.0f,
-  -0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
-   0.0f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
-  -1.0f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f
+GLfloat vertices[] = {
+  // Position   Color             Texcoords
+  -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Top-left
+   0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // Top-right
+   0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, // Bottom-right
+  -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f  // Bottom-left
 };
 
 GLuint elements[] = {
@@ -59,26 +60,33 @@ GLuint elements[] = {
   2, 3, 0
 };
 
-GLuint telements[] = {
-  4, 5, 6
-};
-
 const char *vertex_shader =
   "#version 450\n"
-  "in vec3 vp;"
+  "in vec2 position;"
   "in vec3 color;"
+  "in vec2 texcoord;"
   "out vec3 Color;"
+  "out vec2 Texcoord;"
   "void main() {"
   "  Color = color;"
-  "  gl_Position = vec4(vp, 1.0);"
+  "  Texcoord = texcoord;"
+  "  gl_Position = vec4(position, 0.0, 1.0);"
   "}";
 
 const char *fragment_shader =
   "#version 450\n"
   "in vec3 Color;"
-  "out vec4 frag_color;"
+  "in vec2 Texcoord;"
+  "out vec4 outColor;"
+  "uniform sampler2D tex;"
+  "uniform sampler2D tex2;"
+  "uniform float theTime;"
   "void main() {"
-  "  frag_color = vec4(Color, 1.0);"
+  "  if (Texcoord.y < theTime) {"
+  "    outColor = texture(tex, Texcoord);"
+  "  } else {"
+  "    outColor = texture(tex, vec2(Texcoord.x, 1.0 - Texcoord.y));"
+  "  }"
   "}";
 
 // Forward declaration of this function so we can use it in main().
@@ -86,6 +94,11 @@ double timespec_diff(struct timespec *a, struct timespec *b);
 
 int main(int argc, char *argv[])
 {
+  IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG);
+
+  SDL_Surface *surface = IMG_Load("codemento.jpg");
+  SDL_Surface *agh = IMG_Load("aghgghghghgh.png");
+
   // Create application display.
   Display *dpy = XOpenDisplay(NULL);
 
@@ -190,6 +203,27 @@ int main(int argc, char *argv[])
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
 
+  // Create the vertex array object.
+  GLuint vao = 0;
+  glGenVertexArrays(1, &vao);
+  glBindVertexArray(vao);
+
+  // Create the vertex buffer.
+  GLuint vbo = 0;
+  // So this creates a vertex buffer in the graphics card.
+  glGenBuffers(1, &vbo);
+  // It then sets the buffer as Vertex Attributes.
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  // Finally, we tell the graphics card that we're giving it 12 points in an array.
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+  // EBO stuff
+  GLuint ebo = 0;
+  glGenBuffers(1, &ebo);
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
+
   // Compile the Vertex Shader.
   GLuint vs = glCreateShader(GL_VERTEX_SHADER);
   glShaderSource(vs, 1, &vertex_shader, NULL);
@@ -203,53 +237,48 @@ int main(int argc, char *argv[])
   GLuint shader_program = glCreateProgram();
   glAttachShader(shader_program, fs);
   glAttachShader(shader_program, vs);
-  glBindFragDataLocation(shader_program, 0, "frag_color");
+  glBindFragDataLocation(shader_program, 0, "outColor");
   glLinkProgram(shader_program);
+  glUseProgram(shader_program);
 
-  // Create the vertex buffer.
-  GLuint vbo = 0;
-  // So this creates a vertex buffer in the graphics card.
-  glGenBuffers(1, &vbo);
-  // It then sets the buffer as Vertex Attributes.
-  glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  // Finally, we tell the graphics card that we're giving it 12 points in an array.
-  glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
-
-  GLuint ebo[] = {
-    0, 0
-  };
-  glGenBuffers(2, &ebo);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[0]);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[1]);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(telements), telements, GL_STATIC_DRAW);
-
-  // Create the vertex array object.
-  GLuint vao[] = {
-    0, 0
-  };
-  glGenVertexArrays(1, &vao);
-  glBindVertexArray(vao[0]);
-  glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[0]);
-  GLint posAttrib = glGetAttribLocation(shader_program, "vp");
+  GLint posAttrib = glGetAttribLocation(shader_program, "position");
   glEnableVertexAttribArray(posAttrib);
-  glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), 0);
+  glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), 0);
+
   GLint colAttrib = glGetAttribLocation(shader_program, "color");
   glEnableVertexAttribArray(colAttrib);
-  glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
-  glBindVertexArray(0);
+  glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void *)(2 * sizeof(GLfloat)));
 
-  glBindVertexArray(vao[1]);
-  glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[1]);
-  posAttrib = glGetAttribLocation(shader_program, "vp");
-  glEnableVertexAttribArray(posAttrib);
-  glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), 0);
-  colAttrib = glGetAttribLocation(shader_program, "color");
-  glEnableVertexAttribArray(colAttrib);
-  glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
-  glBindVertexArray(0);
+  GLint texAttrib = glGetAttribLocation(shader_program, "texcoord");
+  glEnableVertexAttribArray(texAttrib);
+  glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void *)(5 * sizeof(GLfloat)));
+
+  GLuint tex[] = {
+    0, 0
+  };
+  glGenTextures(2, &tex);
+
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, tex[0]);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, surface->w, surface->h, 0, GL_RGB, GL_UNSIGNED_BYTE, surface->pixels);
+  glUniform1i(glGetUniformLocation(shader_program, "tex"), 0);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, tex[1]);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, agh->w, agh->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, agh->pixels);
+  glUniform1i(glGetUniformLocation(shader_program, "tex2"), 1);
+
+  GLint uniTime = glGetUniformLocation(shader_program, "theTime");
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
   // This variable will be used to examine events thrown to our application window.
   XEvent e;
@@ -297,6 +326,8 @@ int main(int argc, char *argv[])
   window_change_event.xclient.data.l[0] = _NET_WM_STATE_TOGGLE;
   window_change_event.xclient.data.l[1] = fullscreen;
   window_change_event.xclient.data.l[2] = 0;
+
+  GLfloat counter = 0.0f;
 
   while(!done) {
     // Get the current time.
@@ -438,19 +469,19 @@ int main(int argc, char *argv[])
        */
       for (; mill_store > RATE_LIMIT && ! done; mill_store -= RATE_LIMIT) {
         // Things that should run once per tick/frame will go here.
+        counter += 16.6f;
       }
+
 
       // Render Stuff.
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
       glUseProgram(shader_program);
+      printf("%f\n", sin(counter / 1000.0) / 2.0 + 0.5);
+      glUniform1f(uniTime, sin(counter / 1000.0f) / 2.0f + 0.5f);
 
       // Draw the rectangle
-      glBindVertexArray(vao[0]);
+      glBindVertexArray(vao);
       glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-      // Draw the triangle
-      glBindVertexArray(vao[1]);
-      glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
 
       if (double_buffer) {
         glXSwapBuffers(dpy, win);
@@ -500,6 +531,7 @@ int main(int argc, char *argv[])
   glDeleteVertexArrays(1, &vao);
   glDeleteBuffers(1, &vbo);
   glDeleteBuffers(1, &ebo);
+  glDeleteTextures(2, &tex);
 
   glXMakeCurrent(dpy, None, NULL);
   glXDestroyContext(dpy, opengl_context);
@@ -513,6 +545,13 @@ int main(int argc, char *argv[])
   XDestroyWindow(dpy, win);
   XCloseDisplay(dpy);
   dpy = NULL;
+
+  SDL_FreeSurface(surface);
+  surface = NULL;
+  SDL_FreeSurface(agh);
+  agh = NULL;
+
+  IMG_Quit();
 
   return EXIT_SUCCESS;
 }

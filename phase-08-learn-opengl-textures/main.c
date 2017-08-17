@@ -476,8 +476,8 @@ int main(int argc, char *argv[])
       // Render Stuff.
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
       glUseProgram(shader_program);
-      printf("%f\n", sin(counter / 1000.0) / 2.0 + 0.5);
-      glUniform1f(uniTime, sin(counter / 1000.0f) / 2.0f + 0.5f);
+      printf("%f\n", sin(counter / 1000.0 * 3.14f) / 2.0f + 0.5f);
+      glUniform1f(uniTime, sin(counter / 1000.0f * 3.14f) / 2.0f + 0.5f);
 
       // Draw the rectangle
       glBindVertexArray(vao);

@@ -4,5 +4,8 @@ X11FLAGS  = `pkg-config x11 --cflags --libs`
 GLFLAGS   = -lGL
 SDL2FLAGS =  -lSDL2 -lSDL2_image
 
-build:
-	gcc main.c $(CFLAGS) $(X11FLAGS) $(GLFLAGS) $(SDL2FLAGS) -o main.o
+build: mat4
+	gcc -o main.o main.c mat4.o $(CFLAGS) $(X11FLAGS) $(GLFLAGS) $(SDL2FLAGS)
+
+mat4:
+	gcc -c mat4.c -o mat4.o $(CFLAGS) $(GLFLAGS)

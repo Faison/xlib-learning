@@ -7,10 +7,13 @@
  *
  * This code won't be structured very well, just trying to get stuff working.
  */
+#define GL_GLEXT_PROTOTYPES
+
 #include <errno.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glx.h>
+#include "mat4.h"
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -60,40 +63,125 @@ GLuint elements[] = {
   2, 3, 0
 };
 
+GLfloat trans[] = {
+  1.0f,  0.0f,   0.00f, 0.0f,
+  0.0f,  0.94f, -0.34f, 0.0f,
+  0.0f,  0.34f, -0.94f, 0.0f,
+  0.0f,  0.0f,   0.00f, 1.0f
+};
+
 const char *vertex_shader =
-  "#version 450\n"
+  "#version 150 core\n"
   "in vec2 position;"
   "in vec3 color;"
   "in vec2 texcoord;"
   "out vec3 Color;"
   "out vec2 Texcoord;"
+  "uniform mat4 trans;"
+  "uniform mat4 view;"
   "void main() {"
   "  Color = color;"
   "  Texcoord = texcoord;"
-  "  gl_Position = vec4(position, 0.0, 1.0);"
+  "  gl_Position = view * trans * vec4(position, 0.0, 1.0);"
   "}";
 
 const char *fragment_shader =
-  "#version 450\n"
+  "#version 150 core\n"
+  ""
   "in vec3 Color;"
   "in vec2 Texcoord;"
+  ""
   "out vec4 outColor;"
+  ""
+  "uniform float theTime;"
   "uniform sampler2D tex;"
   "uniform sampler2D tex2;"
-  "uniform float theTime;"
+  ""
   "void main() {"
-  "  if (Texcoord.y < theTime) {"
-  "    outColor = texture(tex, Texcoord);"
+  "  float factor = sin(theTime / 1000.0f * 3.14f) / 2.0f + 0.5f;"
+  "  if (Texcoord.y < factor) {"
+  "    outColor = texture(tex, Texcoord) * vec4(Color, 1.0);"
   "  } else {"
-  "    outColor = texture(tex, vec2(Texcoord.x, 1.0 - Texcoord.y));"
+  "    outColor = texture(tex2, vec2(Texcoord.x, 1.0 - Texcoord.y));"
   "  }"
   "}";
 
 // Forward declaration of this function so we can use it in main().
 double timespec_diff(struct timespec *a, struct timespec *b);
 
+const char *GetGLErrorStr(GLenum err)
+{
+    switch (err)
+    {
+    case GL_NO_ERROR:          return "No error";
+    case GL_INVALID_ENUM:      return "Invalid enum";
+    case GL_INVALID_VALUE:     return "Invalid value";
+    case GL_INVALID_OPERATION: return "Invalid operation";
+    case GL_STACK_OVERFLOW:    return "Stack overflow";
+    case GL_STACK_UNDERFLOW:   return "Stack underflow";
+    case GL_OUT_OF_MEMORY:     return "Out of memory";
+    default:                   return "Unknown error";
+    }
+}
+
+void CheckGLError()
+{
+    while (1)
+    {
+        const GLenum err = glGetError();
+        if (GL_NO_ERROR == err)
+            break;
+
+        printf("GL Error: %s\n", GetGLErrorStr(err));
+    }
+}
+
 int main(int argc, char *argv[])
 {
+  int test[4][4] = {
+    {  1,  0,  0,  5 },
+    {  0,  1,  0,  5 },
+    {  0,  0,  1,  5 },
+    {  0,  0,  0,  1 }
+  };
+  int test2[4][1] = {
+    { 1 },
+    { 2 },
+    { 3 },
+    { 1 }
+  };
+
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      printf("%d,", test[i][j]);
+    }
+    printf("\n");
+  }
+  printf("\n");
+
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 1; j++) {
+      printf("%d,", test2[i][j]);
+    }
+    printf("\n");
+  }
+  printf("\n");
+
+
+
+  GLfloat *view = get_mat4();
+  GLfloat pitch = 55.0f / 180.5f * 3.14f;
+  GLfloat yaw = 0;
+  GLfloat eye[3] = { 0, 1, 0 };
+
+  fps_view(view, eye, pitch, yaw);
+  print_mat4(view);
+  printf("\n\n");
+
+  GLfloat *id = get_mat4();
+  // rotate_mat4(id, 22.0f / 180.0f * 3.14f, Z_AXIS);
+  print_mat4(id);
+
   IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG);
 
   SDL_Surface *surface = IMG_Load("codemento.jpg");
@@ -152,6 +240,8 @@ int main(int argc, char *argv[])
   // We need to know if double buffering is available.
   Bool double_buffer = False;
 
+  glEnable(GL_DEBUG_OUTPUT);
+
   /**
    * So a lot of libraries don't care if they introduce memory leaks that are
    * still reachable. From what I've read online, if it's still reachable, then
@@ -207,6 +297,8 @@ int main(int argc, char *argv[])
   GLuint vao = 0;
   glGenVertexArrays(1, &vao);
   glBindVertexArray(vao);
+  printf("1\n");
+  CheckGLError();
 
   // Create the vertex buffer.
   GLuint vbo = 0;
@@ -216,14 +308,18 @@ int main(int argc, char *argv[])
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
   // Finally, we tell the graphics card that we're giving it 12 points in an array.
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  printf("2\n");
 
+  CheckGLError();
   // EBO stuff
   GLuint ebo = 0;
   glGenBuffers(1, &ebo);
 
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
+  printf("3\n");
 
+  CheckGLError();
   // Compile the Vertex Shader.
   GLuint vs = glCreateShader(GL_VERTEX_SHADER);
   glShaderSource(vs, 1, &vertex_shader, NULL);
@@ -232,7 +328,9 @@ int main(int argc, char *argv[])
   GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
   glShaderSource(fs, 1, &fragment_shader, NULL);
   glCompileShader(fs);
+  printf("4\n");
 
+  CheckGLError();
   // Link the shaders together to create a shader program.
   GLuint shader_program = glCreateProgram();
   glAttachShader(shader_program, fs);
@@ -240,46 +338,84 @@ int main(int argc, char *argv[])
   glBindFragDataLocation(shader_program, 0, "outColor");
   glLinkProgram(shader_program);
   glUseProgram(shader_program);
+  printf("5\n");
 
+  CheckGLError();
   GLint posAttrib = glGetAttribLocation(shader_program, "position");
   glEnableVertexAttribArray(posAttrib);
   glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), 0);
+  printf("6\n");
 
+  CheckGLError();
   GLint colAttrib = glGetAttribLocation(shader_program, "color");
+  printf("7.1\n");
+    CheckGLError();
   glEnableVertexAttribArray(colAttrib);
+  printf("7.2\n");
+    CheckGLError();
   glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void *)(2 * sizeof(GLfloat)));
+  printf("7\n");
 
+  CheckGLError();
   GLint texAttrib = glGetAttribLocation(shader_program, "texcoord");
   glEnableVertexAttribArray(texAttrib);
   glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void *)(5 * sizeof(GLfloat)));
+  printf("8\n");
 
+  CheckGLError();
   GLuint tex[] = {
     0, 0
   };
   glGenTextures(2, &tex);
+  printf("9\n");
 
+  CheckGLError();
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, tex[0]);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, surface->w, surface->h, 0, GL_RGB, GL_UNSIGNED_BYTE, surface->pixels);
   glUniform1i(glGetUniformLocation(shader_program, "tex"), 0);
+  printf("10\n");
 
+  CheckGLError();
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  printf("11\n");
 
+  CheckGLError();
   glActiveTexture(GL_TEXTURE1);
   glBindTexture(GL_TEXTURE_2D, tex[1]);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, agh->w, agh->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, agh->pixels);
   glUniform1i(glGetUniformLocation(shader_program, "tex2"), 1);
+  printf("12\n");
 
+  CheckGLError();
   GLint uniTime = glGetUniformLocation(shader_program, "theTime");
+  printf("13\n");
+  CheckGLError();
+
+  GLint uniTrans = glGetUniformLocation(shader_program, "trans");
+  print_mat4(id);
+  printf("\n%d\n", uniTrans);
+  glUniformMatrix4fv(uniTrans, 1, GL_TRUE, id);
+  printf("13.1\n");
+  CheckGLError();
+
+  GLint uniView = glGetUniformLocation(shader_program, "view");
+  print_mat4(view);
+  printf("\n%d\n", uniView);
+  glUniformMatrix4fv(uniView, 1, GL_TRUE, view);
+  printf("13.2\n");
+  CheckGLError();
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  printf("14\n");
 
+  CheckGLError();
   // This variable will be used to examine events thrown to our application window.
   XEvent e;
 
@@ -328,6 +464,8 @@ int main(int argc, char *argv[])
   window_change_event.xclient.data.l[2] = 0;
 
   GLfloat counter = 0.0f;
+  GLfloat calc = 0.0f;
+  GLfloat spin_calc = 0.0f;
 
   while(!done) {
     // Get the current time.
@@ -472,15 +610,24 @@ int main(int argc, char *argv[])
         counter += 16.6f;
       }
 
+      calc = sin(counter / 1000.0f * 3.14f) / 4.0f + 0.5f;
+      eye[1] = sin(counter / 1000.0f * 3.14f / 3.0f) * 0.8f;
+      eye[0] = sin(counter / 1000.0f * 3.14f / 3.0f + 3.14f / 2.0f) * 0.8f;
+      spin_calc = -counter / 1000.f * 3.14f / 2.0f;
+      fps_view(view, eye, pitch, yaw);
 
+      rotate_mat4(id, spin_calc, Z_AXIS);
       // Render Stuff.
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
       glUseProgram(shader_program);
-      printf("%f\n", sin(counter / 1000.0 * 3.14f) / 2.0f + 0.5f);
-      glUniform1f(uniTime, sin(counter / 1000.0f * 3.14f) / 2.0f + 0.5f);
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+      // printf("%f\n", calc);
+      glUniform1f(uniTime, counter);
 
+      glUniformMatrix4fv(uniView, 1, GL_TRUE, view);
+      glUniformMatrix4fv(uniTrans, 1, GL_TRUE, id);
+
+      CheckGLError();
       // Draw the rectangle
-      glBindVertexArray(vao);
       glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
       if (double_buffer) {
@@ -552,6 +699,8 @@ int main(int argc, char *argv[])
   agh = NULL;
 
   IMG_Quit();
+
+  free(id);
 
   return EXIT_SUCCESS;
 }
